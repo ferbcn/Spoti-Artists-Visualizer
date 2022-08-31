@@ -1,3 +1,5 @@
+import math
+
 import pygame, sys, time
 from pygame.locals import *
 import random
@@ -17,15 +19,12 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
 class ArtistObject(Sprite):
-    def __init__(self, screen, name="Daft Punk"):
+    def __init__(self, name="Daft Punk", pos=(100,100)):
         super().__init__()
 
         self.font = pygame.font.SysFont('Arial', 18)
 
         # Object attributes
-        x, y = screen.get_size()
-        self.pos_x = 100
-        self.pos_y = 100
         self.parent_artist = None
         self.name = name
         self.size = 100
@@ -34,10 +33,13 @@ class ArtistObject(Sprite):
         self.image = pygame.Surface([self.size, self.size])
         self.rect = self.image.get_rect()
 
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+
         pygame.draw.circle(
             self.image,  # Surface to draw on
             [255, 10, 50],  # Color in RGB Fashion
-            [self.pos_x-self.size/2, self.pos_y-self.size/2],  # Center
+            [self.rect.x-self.size/2, self.rect.y-self.size/2],  # Center
             50,  # Radius
             # draw_top_right=True,
             # draw_top_left=True
@@ -59,6 +61,10 @@ class Visualizer:
     def __init__(self):
         super().__init__()
 
+        self.clock = pygame.time.Clock()
+        self.timer = 0
+        self.dt = 0
+
         # Configuration
         pygame.init()
         self.fps = 30
@@ -67,7 +73,7 @@ class Visualizer:
 
         self.mouse_down = False
 
-        self.root_artist = ArtistObject(self.screen)
+        self.root_artist = ArtistObject()
         self.artist_collection = pygame.sprite.Group()
         self.artist_collection.add(self.root_artist)
 
@@ -89,20 +95,53 @@ class Visualizer:
                     pygame.quit()
                     sys.exit()
 
-                elif event.type == MOUSEBUTTONDOWN:
-                    self.mouse_down = True
-
                 elif event.type == MOUSEBUTTONUP:
                     self.mouse_down = False
 
+                elif event.type == MOUSEBUTTONDOWN:
+                    self.mouse_down = True
+                    if event.button == 1:
+                        if self.timer == 0:  # First mouse click.
+                            self.timer = 0.001  # Start the timer.
+                        # Click again before 0.5 seconds to double click.
+                        elif self.timer < 0.5:
+                            print('double click')
+                            self.create_children()
+                            self.timer = 0
                 if event.type == MOUSEMOTION:
                     if self.mouse_down:
                         x, y = event.pos
                         pos = (x-100/2, y-100/2)
                         self.selected_artist.move_object(pos)
 
+
+            # Increase timer after mouse was pressed the first time.
+            if self.timer != 0:
+                self.timer += self.dt
+                # Reset after 0.5 seconds.
+                if self.timer >= 0.5:
+                    print('too late')
+                    self.timer = 0
+
+
             pygame.display.flip()
             self.fpsClock.tick(self.fps)
+
+
+    def create_children(self):
+        recomm_artists = ["Justice", "Kavinsky", "Breakbot", "Digitalism", "Cassius"]
+        l = len(recomm_artists)
+        step = 2*math.pi / l
+        new_pos = []
+        for i in range(l):
+            x = math.cos(i*step) * 200 + self.selected_artist.rect.x
+            y = math.sin(i*step) * 200 + self.selected_artist.rect.y
+            new_pos.append((x, y))
+        print(new_pos)
+
+        for i in range(l):
+            new_art = ArtistObject(name=recomm_artists[i], pos=new_pos[i])
+            self.artist_collection.add(new_art)
 
 
 if __name__ == "__main__":
